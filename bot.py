@@ -4,9 +4,9 @@ import asyncio
 import os
 
 # ===== ENVIRONMENT VARIABLES =====
-API_ID = int(os.getenv("37479567"))
-API_HASH = os.getenv("89fe17e8b2660a56833727a4a0cf3f6e")
-BOT_TOKEN = os.getenv("8499188508:AAFGh-jEFYUsj65UQa8Wmkj6L4an3aSVjno")
+API_ID = int(os.getenv("API_ID"))
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # ===== FORCE JOIN CHANNEL (without @) =====
 FORCE_CHANNEL = "hd_cinema_zx"
