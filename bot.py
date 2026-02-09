@@ -1,69 +1,58 @@
-import os
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import gspread
+import os, asyncio, threading, http.server, socketserver, gspread, json
 from oauth2client.service_account import ServiceAccountCredentials
+from pyrogram import Client, filters, enums
 
-# --- CONFIGURATION ---
-API_ID = os.environ.get("API_ID")
-API_HASH = os.environ.get("API_HASH")
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-# Aapka channel username yahan set hai
-CHANNEL_USERNAME = "hd_cinema_zx" 
+# --- RENDER PORT BINDING ---
+def run_dummy_server():
+    port = int(os.environ.get("PORT", 10000))
+    with socketserver.TCPServer(("", port), http.server.SimpleHTTPRequestHandler) as httpd:
+        httpd.serve_forever()
+threading.Thread(target=run_dummy_server, daemon=True).start()
 
-app = Client("study_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-
-# Google Sheets Setup
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("service_account.json", scope)
-client = gspread.authorize(creds)
-sheet = client.open("StudyBotProject").sheet1 
-
-# --- FORCE JOIN CHECK FUNCTION ---
-async def is_user_member(user_id):
+# --- GOOGLE SHEETS CONNECTION ---
+def get_data_from_sheet():
     try:
-        member = await app.get_chat_member(CHANNEL_USERNAME, user_id)
-        if member.status in ["member", "administrator", "creator"]:
-            return True
-    except Exception:
-        return False
-    return False
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        creds_json = os.environ.get("GSPREAD_JSON")
+        creds_dict = json.loads(creds_json)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        client = gspread.authorize(creds)
+        
+        # FIX: Hum yahan index 0 use karenge taki tab ka naam jo bhi ho, pehli tab utha le
+        sheet = client.open("StudyBotProject").get_worksheet(0)
+        
+        records = sheet.get_all_records()
+        # Debugging ke liye: print(records) Render logs mein dikhega
+        return {str(row['Material']).lower().strip(): row['Link'] for row in records}
+    except Exception as e:
+        print(f"Sheet Error: {e}")
+        return {}
+
+# --- BOT SETUP ---
+app = Client("factio_bot", api_id=int(os.getenv("API_ID")), api_hash=os.getenv("API_HASH"), bot_token=os.getenv("BOT_TOKEN"))
 
 @app.on_message(filters.command("start"))
-async def start(client, message):
-    user_id = message.from_user.id
+async def start(c, m):
+    await m.reply("📚 **Bot Online!**\n\nMaterial ka naam bhejein.", parse_mode=enums.ParseMode.MARKDOWN)
+
+@app.on_message(filters.text & ~filters.command("start"))
+async def handle_request(c, m):
+    query = m.text.lower().strip()
+    data = get_data_from_sheet()
     
-    # Check if user joined channel
-    if not await is_user_member(user_id):
-        await message.reply_text(
-            f"👋 Namaste {message.from_user.mention}!\n\n"
-            "Bot use karne ke liye aapko hamara channel join karna hoga. 👇",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Join Channel 📢", url=f"https://t.me/{CHANNEL_USERNAME}")],
-                [InlineKeyboardButton("Check Again ✅", callback_data="check_join")]
-            ])
+    if query in data:
+        link = data[query]
+        sent = await m.reply(
+            f"✅ **Material Found!**\n\n🔗 **Link:** {link}\n\n⚠️ Note: 5 min mein delete ho jayega!",
+            disable_web_page_preview=True,
+            parse_mode=enums.ParseMode.MARKDOWN
         )
-        return
+        await asyncio.sleep(300)
+        try: await sent.delete(); await m.delete()
+        except: pass
+    else:
+        # Taki humein pata chale bot kya dhoond raha hai
+        await m.reply(f"❌ '{query}' nahi mila. Sheet check karein!", parse_mode=enums.ParseMode.MARKDOWN)
 
-    await message.reply_text("Swagat hai! Ab aap koi bhi material ka naam bhej kar link le sakte hain. #factio")
-
-@app.on_message(filters.text & filters.private)
-async def search_link(client, message):
-    user_id = message.from_user.id
-    
-    # Yahan bhi check karega ki user abhi member hai ya nahi
-    if not await is_user_member(user_id):
-        await message.reply_text("Pehle channel join karein! @hd_cinema_zx")
-        return
-
-    query = message.text.lower()
-    data = sheet.get_all_records()
-    
-    for row in data:
-        if query in row['Material'].lower():
-            await message.reply_text(f"✅ Mil gaya!\n\n📦 **{row['Material']}**\n🔗 Link: {row['Link']}\n\n#facts #shorts #factio")
-            return
-    
-    await message.reply_text("Maaf kijiye, ye material nahi mila. #factio")
-
-app.run()
+if __name__ == "__main__":
+    app.run()
