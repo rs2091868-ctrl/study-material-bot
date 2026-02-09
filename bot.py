@@ -2,6 +2,7 @@ import os
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiohttp import web  # ADD THIS
 
 # ===== ENVIRONMENT VARIABLES =====
 API_ID = int(os.getenv("API_ID"))
@@ -17,8 +18,8 @@ app = Client(
 )
 
 # ===== SETTINGS =====
-CHANNEL_USERNAME = "hd_cinema_zx"   # @ ke bina
-AUTO_DELETE_TIME = 300  # 5 minutes
+CHANNEL_USERNAME = "hd_cinema_zx"
+AUTO_DELETE_TIME = 300
 
 # ===== DATA =====
 DATA = {
@@ -31,18 +32,9 @@ DATA = {
 @app.on_message(filters.command("start"))
 async def start(client, message):
     await message.reply(
-        "📚 **Study Material Bot**\n\n"
-        "Material ka naam bhejo aur link pao.\n\n"
-        "👇 Pehle channel join karo",
+        "📚 **Study Material Bot**\n\nMaterial ka naam bhejo aur link pao.\n\n👇 Pehle channel join karo",
         reply_markup=InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(
-                        "🔔 Join Channel",
-                        url=f"https://t.me/{CHANNEL_USERNAME}"
-                    )
-                ]
-            ]
+            [[InlineKeyboardButton("🔔 Join Channel", url=f"https://t.me/{CHANNEL_USERNAME}")]]
         ),
         parse_mode="markdown"
     )
@@ -63,23 +55,23 @@ async def send_material(client, message):
         await message.delete()
     else:
         await message.reply(
-            "❌ **Material nahi mila**\n\n"
-            "📌 Is tarah likho:\n"
-            "`physics notes`\n"
-            "`chemistry notes`\n"
-            "`math pdf`",
+            "❌ **Material nahi mila**\n\n📌 Is tarah likho:\n`physics notes`\n`chemistry notes`\n`math pdf`",
             reply_markup=InlineKeyboardMarkup(
-                [
-                    [
-                        InlineKeyboardButton(
-                            "🔔 Join Channel",
-                            url=f"https://t.me/{CHANNEL_USERNAME}"
-                        )
-                    ]
-                ]
+                [[InlineKeyboardButton("🔔 Join Channel", url=f"https://t.me/{CHANNEL_USERNAME}")]]
             ),
             parse_mode="markdown"
         )
 
 # ===== RUN BOT =====
+def start_webserver():
+    async def handle(request):
+        return web.Response(text="Bot is running")
+    port = int(os.environ.get("PORT", 10000))
+    app_web = web.Application()
+    app_web.add_routes([web.get("/", handle)])
+    web.run_app(app_web, port=port)
+
+import threading
+threading.Thread(target=start_webserver).start()
+
 app.run()
