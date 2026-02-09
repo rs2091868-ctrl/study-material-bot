@@ -3,11 +3,10 @@ import asyncio
 import threading
 import http.server
 import socketserver
-from pyrogram import Client, filters
+from pyrogram import Client, filters, enums  # 'enums' add kiya gaya hai
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# ===== RENDER PORT BINDING (MISTAKE FIX) =====
-# Ye section Render ke "Port scan timeout" error ko solve karega
+# ===== RENDER PORT BINDING =====
 def run_dummy_server():
     port = int(os.environ.get("PORT", 10000))
     handler = http.server.SimpleHTTPRequestHandler
@@ -15,7 +14,6 @@ def run_dummy_server():
         print(f"Dummy server running on port {port}")
         httpd.serve_forever()
 
-# Server ko background mein start karein
 threading.Thread(target=run_dummy_server, daemon=True).start()
 
 # ===== ENVIRONMENT VARIABLES =====
@@ -33,7 +31,7 @@ app = Client(
 
 # ===== SETTINGS =====
 CHANNEL_USERNAME = "hd_cinema_zx"
-AUTO_DELETE_TIME = 300  # 5 minutes
+AUTO_DELETE_TIME = 300 
 
 # ===== DATA =====
 DATA = {
@@ -45,38 +43,40 @@ DATA = {
 # ===== START COMMAND =====
 @app.on_message(filters.command("start"))
 async def start(client, message):
-    await message.reply(
-        "📚 **Study Material Bot**\n\nMaterial ka naam bhejo aur link pao.\n\n👇 Pehle channel join karo",
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("🔔 Join Channel", url=f"https://t.me/{CHANNEL_USERNAME}")]]
-        ),
-        parse_mode="markdown"
-    )
+    try:
+        await message.reply(
+            "📚 **Study Material Bot**\n\nMaterial ka naam bhejo aur link pao.\n\n👇 Pehle channel join karo",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("🔔 Join Channel", url=f"https://t.me/{CHANNEL_USERNAME}")]]
+            ),
+            parse_mode=enums.ParseMode.MARKDOWN  # Error Fixed yahan
+        )
+    except Exception as e:
+        print(f"Start Error: {e}")
 
 # ===== TEXT HANDLER =====
 @app.on_message(filters.text & ~filters.command("start"))
 async def send_material(client, message):
     query = message.text.lower().strip()
     if query in DATA:
-        sent = await message.reply(
-            f"✅ **Your Material Link:**\n{DATA[query]}",
-            disable_web_page_preview=True,
-            parse_mode="markdown"
-        )
-        # Auto-delete logic
-        await asyncio.sleep(AUTO_DELETE_TIME)
         try:
+            sent = await message.reply(
+                f"✅ **Your Material Link:**\n{DATA[query]}",
+                disable_web_page_preview=True,
+                parse_mode=enums.ParseMode.MARKDOWN  # Error Fixed yahan
+            )
+            await asyncio.sleep(AUTO_DELETE_TIME)
             await sent.delete()
             await message.delete()
         except Exception as e:
-            print(f"Error deleting message: {e}")
+            print(f"Send Error: {e}")
     else:
         await message.reply(
             "❌ **Material nahi mila**\n\n📌 Is tarah likho:\n`physics notes`\n`chemistry notes`\n`math pdf`",
             reply_markup=InlineKeyboardMarkup(
                 [[InlineKeyboardButton("🔔 Join Channel", url=f"https://t.me/{CHANNEL_USERNAME}")]]
             ),
-            parse_mode="markdown"
+            parse_mode=enums.ParseMode.MARKDOWN  # Error Fixed yahan
         )
 
 # ===== RUN BOT =====
