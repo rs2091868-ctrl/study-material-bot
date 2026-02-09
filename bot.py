@@ -10,7 +10,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # ===== BOT INIT =====
 app = Client(
-    "og_prime_zx_bot",
+    "og_prime_zx_bot",  # Bot username
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
