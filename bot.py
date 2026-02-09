@@ -1,73 +1,85 @@
+import os
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import asyncio
-import os
 
 # ===== ENVIRONMENT VARIABLES =====
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# ===== FORCE JOIN CHANNEL (without @) =====
-FORCE_CHANNEL = "hd_cinema_zx"
-
 # ===== BOT INIT =====
 app = Client(
-    "hd_cinema_zx",
+    "og_prime_zx_bot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
 )
 
-# ===== MATERIAL DATABASE (LINKS ONLY) =====
+# ===== SETTINGS =====
+CHANNEL_USERNAME = "hd_cinema_zx"   # @ ke bina
+AUTO_DELETE_TIME = 300  # 5 minutes (300 sec)
+
+# ===== DATA (material name : link) =====
 DATA = {
-    "physics notes": "https://yourshortlink.com/physics",
-    "math pdf": "https://yourshortlink.com/math"
+    "physics notes": "https://unlocktoearn.com/kAvOH",
+    "chemistry notes": "https://unlocktoearn.com/G72j8",
+    "math pdf": "https://unlocktoearn.com/syQJq"
 }
 
-# ===== /start COMMAND =====
+# ===== START COMMAND =====
 @app.on_message(filters.command("start"))
 async def start(client, message):
-    await message.reply_text(
-        "🔥 **Welcome to prime Bot**\n\n"
-        "✍️ Movie ka naam search karo\n"
-        "🔗 Link sirf 5 min ke liye milega\n\n"
-        "👇 Pehle channel join karo",
+    await message.reply(
+        "📚 **Study Material Bot**\n\n"
+        "Material ka naam bhejo aur turant link pao.\n\n"
+        "👇 Pehle channel join karna zaroori hai",
         reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("🔔 Join Channel", url=f"https://t.me/{FORCE_CHANNEL}")]]
-        )
+            [
+                [
+                    InlineKeyboardButton(
+                        "🔔 Join Channel",
+                        url=f"https://t.me/{CHANNEL_USERNAME}"
+                    )
+                ]
+            ]
+        ),
+        parse_mode="markdown"
     )
 
-# ===== SEARCH HANDLER =====
-@app.on_message(filters.text & ~filters.command)
-async def search_material(client, message):
-
-    # ---- FORCE JOIN CHECK ----
-    try:
-        await client.get_chat_member(FORCE_CHANNEL, message.from_user.id)
-    except:
-        await message.reply_text(
-            "❌ Pehle channel join karo",
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("🔔 Join Channel", url=f"https://t.me/{FORCE_CHANNEL}")]]
-            )
-        )
-        return
-
-    # ---- SEARCH ----
+# ===== TEXT HANDLER =====
+@app.on_message(filters.text & ~filters.command())
+async def send_material(client, message):
     query = message.text.lower().strip()
 
     if query in DATA:
-        msg = await message.reply_text(
-            f"✅ **Material Found**\n\n🔗 {DATA[query]}"
+        sent = await message.reply(
+            f"✅ **Your Material Link:**\n{DATA[query]}",
+            disable_web_page_preview=True,
+            parse_mode="markdown"
         )
-
-        # ---- AUTO DELETE AFTER 5 MIN ----
-        await asyncio.sleep(300)
-        await msg.delete()
-
+        await asyncio.sleep(AUTO_DELETE_TIME)
+        await sent.delete()
+        await message.delete()
     else:
-        await message.reply_text("❌ Material nahi mila, naam sahi likho")
+        await message.reply(
+            "❌ **Material nahi mila**\n\n"
+            "📌 Is tarah likho:\n"
+            "`physics notes`\n"
+            "`chemistry notes`\n"
+            "`math pdf`",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(
+                            "🔔 Join Channel",
+                            url=f"https://t.me/{CHANNEL_USERNAME}"
+                        )
+                    ]
+                ]
+            ),
+            parse_mode="markdown"
+        )
 
 # ===== RUN BOT =====
 app.run()
