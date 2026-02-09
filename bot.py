@@ -2,7 +2,7 @@ import os
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiohttp import web  # ADD THIS
+from aiohttp import web  # For dummy port
 
 # ===== ENVIRONMENT VARIABLES =====
 API_ID = int(os.getenv("API_ID"))
@@ -11,7 +11,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # ===== BOT INIT =====
 app = Client(
-    "og_prime_zx_bot",
+    "og_prime_zx_bot",  # Bot username
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
@@ -19,9 +19,9 @@ app = Client(
 
 # ===== SETTINGS =====
 CHANNEL_USERNAME = "hd_cinema_zx"
-AUTO_DELETE_TIME = 300
+AUTO_DELETE_TIME = 300  # 5 minutes
 
-# ===== DATA =====
+# ===== DATA (Material Name : Link) =====
 DATA = {
     "physics notes": "https://unlocktoearn.com/kAvOH",
     "chemistry notes": "https://unlocktoearn.com/G72j8",
@@ -62,7 +62,7 @@ async def send_material(client, message):
             parse_mode="markdown"
         )
 
-# ===== RUN BOT =====
+# ===== DUMMY WEB SERVER (For Render) =====
 def start_webserver():
     async def handle(request):
         return web.Response(text="Bot is running")
@@ -74,4 +74,5 @@ def start_webserver():
 import threading
 threading.Thread(target=start_webserver).start()
 
+# ===== RUN BOT =====
 app.run()
