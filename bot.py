@@ -1,7 +1,22 @@
 import os
 import asyncio
+import threading
+import http.server
+import socketserver
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+# ===== RENDER PORT BINDING (MISTAKE FIX) =====
+# Ye section Render ke "Port scan timeout" error ko solve karega
+def run_dummy_server():
+    port = int(os.environ.get("PORT", 10000))
+    handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", port), handler) as httpd:
+        print(f"Dummy server running on port {port}")
+        httpd.serve_forever()
+
+# Server ko background mein start karein
+threading.Thread(target=run_dummy_server, daemon=True).start()
 
 # ===== ENVIRONMENT VARIABLES =====
 API_ID = int(os.getenv("API_ID"))
@@ -10,7 +25,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # ===== BOT INIT =====
 app = Client(
-    "og_prime_zx_bot",  # Bot username
+    "og_prime_zx_bot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
@@ -48,9 +63,13 @@ async def send_material(client, message):
             disable_web_page_preview=True,
             parse_mode="markdown"
         )
+        # Auto-delete logic
         await asyncio.sleep(AUTO_DELETE_TIME)
-        await sent.delete()
-        await message.delete()
+        try:
+            await sent.delete()
+            await message.delete()
+        except Exception as e:
+            print(f"Error deleting message: {e}")
     else:
         await message.reply(
             "❌ **Material nahi mila**\n\n📌 Is tarah likho:\n`physics notes`\n`chemistry notes`\n`math pdf`",
@@ -61,4 +80,5 @@ async def send_material(client, message):
         )
 
 # ===== RUN BOT =====
-app.run()
+if __name__ == "__main__":
+    app.run()
