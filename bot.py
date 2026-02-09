@@ -2,10 +2,10 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import asyncio
 
-API_ID = 123456
-API_HASH = "YOUR_API_HASH"
-BOT_TOKEN = "YOUR_BOT_TOKEN"
-FORCE_CHANNEL = "yourchannelusername"  # @ ke bina
+API_ID = 37479567
+API_HASH = 89fe17e8b2660a56833727a4a0cf3f6e
+BOT_TOKEN = 8383178430:AAEjLkkeR8rpUWFN5JYe2t0tUJiguU4kMGs
+FORCE_CHANNEL = StudyMaterial079
 
 app = Client(
     "studybot",
