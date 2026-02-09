@@ -17,13 +17,10 @@ def get_data_from_sheet():
         creds_dict = json.loads(creds_json)
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
-        
-        # FIX: Hum yahan index 0 use karenge taki tab ka naam jo bhi ho, pehli tab utha le
         sheet = client.open("StudyBotProject").get_worksheet(0)
-        
         records = sheet.get_all_records()
-        # Debugging ke liye: print(records) Render logs mein dikhega
-        return {str(row['Material']).lower().strip(): row['Link'] for row in records}
+        # Material name aur link dono return kar raha hai
+        return {str(row['Material']).lower().strip(): (row['Material'], row['Link']) for row in records}
     except Exception as e:
         print(f"Sheet Error: {e}")
         return {}
@@ -33,26 +30,32 @@ app = Client("factio_bot", api_id=int(os.getenv("API_ID")), api_hash=os.getenv("
 
 @app.on_message(filters.command("start"))
 async def start(c, m):
-    await m.reply("📚 **Bot Online!**\n\nMaterial ka naam bhejein.", parse_mode=enums.ParseMode.MARKDOWN)
+    # Aapka OG Prime wala welcome message
+    await m.reply("📚 **Bot Online!**\n\nMy name is OG Prime. Material ka naam bhejein. ✨\n\n#factio", parse_mode=enums.ParseMode.MARKDOWN)
 
 @app.on_message(filters.text & ~filters.command("start"))
 async def handle_request(c, m):
     query = m.text.lower().strip()
     data = get_data_from_sheet()
     
+    # Check karega ki kya material sheet mein hai
     if query in data:
-        link = data[query]
+        mat_name, link = data[query]
+        # Material ka name aur link saath mein
         sent = await m.reply(
-            f"✅ **Material Found!**\n\n🔗 **Link:** {link}\n\n⚠️ Note: 5 min mein delete ho jayega!",
+            f"✅ **Material Found!**\n\n📦 **Name:** {mat_name}\n🔗 **Link:** {link}\n\n⚠️ Note: 4 min mein delete ho jayega!\n\n#facts #shorts #factio",
             disable_web_page_preview=True,
             parse_mode=enums.ParseMode.MARKDOWN
         )
-        await asyncio.sleep(300)
-        try: await sent.delete(); await m.delete()
-        except: pass
-    else:
-        # Taki humein pata chale bot kya dhoond raha hai
-        await m.reply(f"❌ '{query}' nahi mila. Sheet check karein!", parse_mode=enums.ParseMode.MARKDOWN)
+        
+        # 4 minute (240s) baad dono message delete honge
+        await asyncio.sleep(240)
+        try: 
+            await sent.delete()
+            await m.delete()
+        except: 
+            pass
+    # ELSE part hata diya hai taki faltu message par bot reply na kare (Group spam control)
 
 if __name__ == "__main__":
     app.run()
