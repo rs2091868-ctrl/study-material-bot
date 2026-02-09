@@ -18,9 +18,9 @@ app = Client(
 
 # ===== SETTINGS =====
 CHANNEL_USERNAME = "hd_cinema_zx"   # @ ke bina
-AUTO_DELETE_TIME = 300  # 5 minutes (300 sec)
+AUTO_DELETE_TIME = 300  # 5 minutes
 
-# ===== DATA (material name : link) =====
+# ===== DATA =====
 DATA = {
     "physics notes": "https://unlocktoearn.com/kAvOH",
     "chemistry notes": "https://unlocktoearn.com/G72j8",
@@ -32,8 +32,8 @@ DATA = {
 async def start(client, message):
     await message.reply(
         "📚 **Study Material Bot**\n\n"
-        "Material ka naam bhejo aur turant link pao.\n\n"
-        "👇 Pehle channel join karna zaroori hai",
+        "Material ka naam bhejo aur link pao.\n\n"
+        "👇 Pehle channel join karo",
         reply_markup=InlineKeyboardMarkup(
             [
                 [
@@ -48,7 +48,7 @@ async def start(client, message):
     )
 
 # ===== TEXT HANDLER =====
-@app.on_message(filters.text & ~filters.command())
+@app.on_message(filters.text & ~filters.command("start"))
 async def send_material(client, message):
     query = message.text.lower().strip()
 
