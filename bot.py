@@ -31,7 +31,7 @@ app = Client("factio_bot", api_id=int(os.getenv("API_ID")), api_hash=os.getenv("
 @app.on_message(filters.command("start"))
 async def start(c, m):
     # Aapka OG Prime wala welcome message
-    await m.reply("😎🔥 **Bot Online!**\n\nMy name is OG Prime. Movie ka naam bhejein. ✨ example border❌ Border ✅ pahla akshar capital me hona chahiye file na milne par spelling check Karen ✍️\n\n#factio", parse_mode=enums.ParseMode.MARKDOWN)
+    await m.reply("😎🔥 **Bot Online!**\n\nMovie ka naam bhejein. ✨✍️\n\nPahla akshar capital me hona chahiye file na milne par spelling check Karen", parse_mode=enums.ParseMode.MARKDOWN)
 
 @app.on_message(filters.text & ~filters.command("start"))
 async def handle_request(c, m):
@@ -43,7 +43,7 @@ async def handle_request(c, m):
         mat_name, link = data[query]
         # Material ka name aur link saath mein
         sent = await m.reply(
-            f"✅ **Material Found!**\n\n🎬 **Name:** {mat_name}\n🔗 **Link:** {link}\n\n⚠️ Note: 4 min mein link delete ho jayega!\n\nlink par click karke download karlein 🍿",
+            f"✅ **Material Found!**\n\n🎬 **Name:** {mat_name}\n🔗 **Link:** {link}\n\n⚠️ Note: 4 min mein link delete ho jayega!",
             disable_web_page_preview=True,
             parse_mode=enums.ParseMode.MARKDOWN
         )
