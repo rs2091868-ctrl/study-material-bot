@@ -31,7 +31,7 @@ app = Client("factio_bot", api_id=int(os.getenv("API_ID")), api_hash=os.getenv("
 @app.on_message(filters.command("start"))
 async def start(c, m):
     # Aapka OG Prime wala welcome message
-    await m.reply("😎🔥 **Bot Online!**\n\nMovie ka naam bhejein. ✨✍️\n\nPahla akshar capital me hona chahiye file na milne par spelling check Karen", parse_mode=enums.ParseMode.MARKDOWN)
+    await m.reply("😎🔥 **Bot Online!**\n\nMovie ka naam bhejein. ✨\n\n⚠️ File na milne par spelling check Karen!", parse_mode=enums.ParseMode.MARKDOWN)
 
 @app.on_message(filters.text & ~filters.command("start"))
 async def handle_request(c, m):
