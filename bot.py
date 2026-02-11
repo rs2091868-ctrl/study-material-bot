@@ -1,4 +1,4 @@
-import os, asyncio, threading, http.server, socketserver, gspread, json, re
+           import os, asyncio, threading, http.server, socketserver, gspread, json
 from oauth2client.service_account import ServiceAccountCredentials
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -8,10 +8,6 @@ from pyrogram.errors import UserNotParticipant
 CHANNEL_ID = "@hd_cinema_hub_og"
 CHANNEL_LINK = "https://t.me/hd_cinema_hub_og"
 BOT_USERNAME = "og_prime_zx_bot"
-
-# --- ADULT & BAD WORDS LIST ---
-# Yahan aap aur bhi words add kar sakte hain
-BAD_WORDS = ["mc", "bc", "sex", "porn", "xnx", "gaali", "chu"] 
 
 # --- RENDER PORT BINDING ---
 def run_dummy_server():
@@ -38,14 +34,6 @@ def get_data_from_sheet():
 # --- BOT SETUP ---
 app = Client("factio_bot", api_id=int(os.getenv("API_ID")), api_hash=os.getenv("API_HASH"), bot_token=os.getenv("BOT_TOKEN"))
 
-# Helper function for auto-delete
-async def auto_delete(chat_id, message_id, delay=300):
-    await asyncio.sleep(delay)
-    try:
-        await app.delete_messages(chat_id, message_id)
-    except:
-        pass
-
 # Helper function to check join status
 async def is_subscribed(c, m):
     try:
@@ -66,54 +54,44 @@ async def start(c, m):
     ])
     await m.reply("😎🔥 **Bot Online!**\n\nMovie ka naam bhejein. ✨\n\n⚠️ File na milne par spelling check Karen!", parse_mode=enums.ParseMode.MARKDOWN, reply_markup=buttons)
 
-# --- NEW FEATURE: MONITOR GROUP MESSAGES ---
-@app.on_message(filters.group & filters.text & ~filters.me)
-async def group_monitor(c, m):
-    # Admin immunity: Admin ke messages check nahi honge
-    try:
-        member = await c.get_chat_member(m.chat.id, m.from_user.id)
-        if member.status in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
-            return
-    except:
-        pass
-
-    # 1. Link & Adult Word Filter (Immediate Delete)
-    text = m.text.lower()
-    has_link = re.search(r'http[s]?://|t\.me|www\.', text)
-    has_bad_word = any(word in text for word in BAD_WORDS)
-
-    if has_link or has_bad_word:
-        await m.delete()
-        return
-
-    # 2. 5 Minute Auto-Delete for Normal Messages
-    asyncio.create_task(auto_delete(m.chat.id, m.id, 300))
-
 # --- UPDATED HANDLE REQUEST (Group + Private) ---
 @app.on_message(filters.text & ~filters.command("start"))
 async def handle_request(c, m):
+    # 1. Join Check (Only for Private Chats, Groups mein aksar restriction nahi rakhi jaati)
     if m.chat.type == enums.ChatType.PRIVATE:
         if not await is_subscribed(c, m):
-            join_button = InlineKeyboardMarkup([[InlineKeyboardButton("📢 Join Channel First", url=CHANNEL_LINK)]])
-            await m.reply(f"❌ **Access Denied!**\n\nPehle hamara channel join karein.", reply_markup=join_button)
+            join_button = InlineKeyboardMarkup([
+                [InlineKeyboardButton("📢 Join Channel First", url=CHANNEL_LINK)]
+            ])
+            await m.reply(
+                f"❌ **Access Denied!**\n\nPehle hamara channel join karein tabhi aap link dekh payenge.",
+                reply_markup=join_button
+            )
             return
 
+    # 2. Process Request
     query = m.text.lower().strip()
     data = get_data_from_sheet()
     
+    # Agar material sheet mein hai tabhi reply karega
     if query in data:
         mat_name, link = data[query]
         sent = await m.reply(
-            f"✅ **Material Found!**\n\n🎬 **Name:** {mat_name}\n🔗 **Link:** {link}\n\n⚠️ Note: 5 min mein link delete ho jayega!",
+            f"✅ **Material Found!**\n\n🎬 **Name:** {mat_name}\n🔗 **Link:** {link}\n\n⚠️ Note: 4 min mein link delete ho jayega!",
             disable_web_page_preview=True,
-            reply_to_message_id=m.id
+            parse_mode=enums.ParseMode.MARKDOWN,
+            reply_to_message_id=m.id # Group mein specific message par reply karega
         )
         
-        # 5 minute auto-delete for bot reply
-        asyncio.create_task(auto_delete(m.chat.id, sent.id, 300))
-        # Message mangne wale ka message bhi delete (agar group hai)
-        if m.chat.type != enums.ChatType.PRIVATE:
-            asyncio.create_task(auto_delete(m.chat.id, m.id, 300))
+        # Auto-delete
+        await asyncio.sleep(240)
+        try: 
+            await sent.delete()
+            # Private chat mein user ka message delete hoga, group mein bot admin hona chahiye
+            await m.delete()
+        except: 
+            pass
+    # Agar query nahi mili to bot kuch nahi karega (Silent rahega)
 
 if __name__ == "__main__":
     app.run()
