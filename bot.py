@@ -1,11 +1,13 @@
 import os, asyncio, threading, http.server, socketserver, gspread, json
 from oauth2client.service_account import ServiceAccountCredentials
 from pyrogram import Client, filters, enums
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton # Buttons ke liye
 from pyrogram.errors import UserNotParticipant
 
 # --- CONFIG ---
-CHANNEL_ID = "@hd_cinema_hub_og"  # Aapka channel username
+CHANNEL_ID = "@hd_cinema_hub_og"
 CHANNEL_LINK = "https://t.me/hd_cinema_hub_og"
+BOT_USERNAME = "og_prime_zx_bot" # Aapka bot username add kar diya hai
 
 # --- RENDER PORT BINDING ---
 def run_dummy_server():
@@ -42,20 +44,27 @@ async def is_subscribed(c, m):
         return False
     except Exception as e:
         print(f"Join Check Error: {e}")
-        return True # Error aane par process hone dega takki bot na ruke
+        return True 
     return False
 
 @app.on_message(filters.command("start"))
 async def start(c, m):
-    await m.reply("😎🔥 **Bot Online!**\n\nMovie ka naam bhejein. ✨\n\n⚠️ File na milne par spelling check Karen!", parse_mode=enums.ParseMode.MARKDOWN)
+    # Add to Group Button
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton("➕ Add Me To Your Group", url=f"https://t.me/{BOT_USERNAME}?startgroup=true")]
+    ])
+    await m.reply("😎🔥 **Bot Online!**\n\nMovie ka naam bhejein. ✨\n\n⚠️ File na milne par spelling check Karen!", parse_mode=enums.ParseMode.MARKDOWN, reply_markup=buttons)
 
 @app.on_message(filters.text & ~filters.command("start") & filters.private)
 async def handle_request(c, m):
-    # 1. Join Check
+    # 1. Join Check with Button
     if not await is_subscribed(c, m):
+        join_button = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📢 Join Channel First", url=CHANNEL_LINK)]
+        ])
         await m.reply(
-            f"❌ **Access Denied!**\n\nPehle hamara channel join karein tabhi aap link dekh payenge.\n\n🔗 **Join Here:** {CHANNEL_LINK}\n\nJoin karne ke baad fir se message bhejein.",
-            disable_web_page_preview=True
+            f"❌ **Access Denied!**\n\nPehle hamara channel join karein tabhi aap link dekh payenge.",
+            reply_markup=join_button
         )
         return
 
