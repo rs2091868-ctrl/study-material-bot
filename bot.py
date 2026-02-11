@@ -1,13 +1,13 @@
 import os, asyncio, threading, http.server, socketserver, gspread, json
 from oauth2client.service_account import ServiceAccountCredentials
 from pyrogram import Client, filters, enums
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton # Buttons ke liye
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import UserNotParticipant
 
 # --- CONFIG ---
 CHANNEL_ID = "@hd_cinema_hub_og"
 CHANNEL_LINK = "https://t.me/hd_cinema_hub_og"
-BOT_USERNAME = "og_prime_zx_bot" # Aapka bot username add kar diya hai
+BOT_USERNAME = "og_prime_zx_bot"
 
 # --- RENDER PORT BINDING ---
 def run_dummy_server():
@@ -49,44 +49,49 @@ async def is_subscribed(c, m):
 
 @app.on_message(filters.command("start"))
 async def start(c, m):
-    # Add to Group Button
     buttons = InlineKeyboardMarkup([
         [InlineKeyboardButton("➕ Add Me To Your Group", url=f"https://t.me/{BOT_USERNAME}?startgroup=true")]
     ])
     await m.reply("😎🔥 **Bot Online!**\n\nMovie ka naam bhejein. ✨\n\n⚠️ File na milne par spelling check Karen!", parse_mode=enums.ParseMode.MARKDOWN, reply_markup=buttons)
 
-@app.on_message(filters.text & ~filters.command("start") & filters.private)
+# --- UPDATED HANDLE REQUEST (Group + Private) ---
+@app.on_message(filters.text & ~filters.command("start"))
 async def handle_request(c, m):
-    # 1. Join Check with Button
-    if not await is_subscribed(c, m):
-        join_button = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📢 Join Channel First", url=CHANNEL_LINK)]
-        ])
-        await m.reply(
-            f"❌ **Access Denied!**\n\nPehle hamara channel join karein tabhi aap link dekh payenge.",
-            reply_markup=join_button
-        )
-        return
+    # 1. Join Check (Only for Private Chats, Groups mein aksar restriction nahi rakhi jaati)
+    if m.chat.type == enums.ChatType.PRIVATE:
+        if not await is_subscribed(c, m):
+            join_button = InlineKeyboardMarkup([
+                [InlineKeyboardButton("📢 Join Channel First", url=CHANNEL_LINK)]
+            ])
+            await m.reply(
+                f"❌ **Access Denied!**\n\nPehle hamara channel join karein tabhi aap link dekh payenge.",
+                reply_markup=join_button
+            )
+            return
 
     # 2. Process Request
     query = m.text.lower().strip()
     data = get_data_from_sheet()
     
+    # Agar material sheet mein hai tabhi reply karega
     if query in data:
         mat_name, link = data[query]
         sent = await m.reply(
             f"✅ **Material Found!**\n\n🎬 **Name:** {mat_name}\n🔗 **Link:** {link}\n\n⚠️ Note: 4 min mein link delete ho jayega!",
             disable_web_page_preview=True,
-            parse_mode=enums.ParseMode.MARKDOWN
+            parse_mode=enums.ParseMode.MARKDOWN,
+            reply_to_message_id=m.id # Group mein specific message par reply karega
         )
         
         # Auto-delete
         await asyncio.sleep(240)
         try: 
             await sent.delete()
+            # Private chat mein user ka message delete hoga, group mein bot admin hona chahiye
             await m.delete()
         except: 
             pass
+    # Agar query nahi mili to bot kuch nahi karega (Silent rahega)
 
 if __name__ == "__main__":
     app.run()
