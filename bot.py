@@ -1,8 +1,8 @@
 import os, asyncio, threading, http.server, socketserver, gspread, json
-import difflib  # Spelling suggestion ke liye
+import difflib
 from oauth2client.service_account import ServiceAccountCredentials
 from pyrogram import Client, filters, enums
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.errors import UserNotParticipant
 
 # --- CONFIG ---
@@ -54,7 +54,28 @@ async def start(c, m):
     ])
     await m.reply("😎🔥 **Bot Online!**\n\nMovie ka naam bhejein. ✨\n\n⚠️ File na milne par spelling check Karen!", parse_mode=enums.ParseMode.MARKDOWN, reply_markup=buttons)
 
-# --- UPDATED HANDLE REQUEST ---
+# --- CALLBACK HANDLER (Buttons Click) ---
+@app.on_callback_query()
+async def callback_handler(c, cb: CallbackQuery):
+    query = cb.data.lower().strip()
+    data = get_data_from_sheet()
+    
+    if query in data:
+        mat_name, link = data[query]
+        sent = await cb.message.reply(
+            f"✅ **Material Found!**\n\n🎬 **Name:** {mat_name}\n🔗 **Link:** {link}\n\n⚠️ Note: 4 min mein link delete ho jayega!",
+            disable_web_page_preview=True
+        )
+        await cb.answer("Material Sent!") # Notification on top
+        
+        await asyncio.sleep(240)
+        try: 
+            await sent.delete()
+        except: pass
+    else:
+        await cb.answer("❌ Error: Material not found in sheet!", show_alert=True)
+
+# --- TEXT MESSAGE HANDLER ---
 @app.on_message(filters.text & ~filters.command("start"))
 async def handle_request(c, m):
     if m.chat.type == enums.ChatType.PRIVATE:
@@ -66,7 +87,6 @@ async def handle_request(c, m):
     query = m.text.lower().strip()
     data = get_data_from_sheet()
     
-    # 1. Exact Match Check
     if query in data:
         mat_name, link = data[query]
         sent = await m.reply(
@@ -80,25 +100,22 @@ async def handle_request(c, m):
             await m.delete()
         except: pass
 
-    # 2. Spelling Suggestion Logic (Agar exact match nahi mila)
     else:
         all_materials = list(data.keys())
-        # Milte julte 5 best matches nikaalne ke liye
         matches = difflib.get_close_matches(query, all_materials, n=5, cutoff=0.3)
         
         if matches:
             buttons = []
             for match in matches:
-                # Button par click karne se wahi text bot ko dubara send hoga
                 display_name = data[match][0]
-                buttons.append([InlineKeyboardButton(display_name, switch_inline_query_current_chat=display_name)])
+                # Yahan humne callback_data use kiya hai taaki username na aaye
+                buttons.append([InlineKeyboardButton(display_name, callback_data=match)])
             
             suggestion_msg = await m.reply(
                 "🤔 **Aap ye toh nahi dhoond rahe?**\nNiche diye gaye options mein se select karein:",
                 reply_markup=InlineKeyboardMarkup(buttons),
                 reply_to_message_id=m.id
             )
-            # Suggestion buttons bhi 2 min baad delete ho jayenge (Clean up)
             await asyncio.sleep(120)
             try: await suggestion_msg.delete()
             except: pass
